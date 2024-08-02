@@ -89,14 +89,16 @@ class SimpleInventoryDeterministicPolicy(
 
 
 class SimpleInventoryStochasticPolicy(Policy[InventoryState, int]):
-    def __init__(self, reorder_point_poisson_mean: float):
+    def __init__(self, reorder_point_poisson_mean: float, capacity: int):
         self.reorder_point_poisson_mean: float = reorder_point_poisson_mean
+        self.capacity: int = capacity
 
     def act(self, state: NonTerminal[InventoryState]) -> \
             SampledDistribution[int]:
         def action_func(state=state) -> int:
-            reorder_point_sample: int = \
-                np.random.poisson(self.reorder_point_poisson_mean)
+            reorder_point_sample: int = min(
+                np.random.poisson(self.reorder_point_poisson_mean),
+                self.capacity)
             return max(
                 reorder_point_sample - state.state.inventory_position(),
                 0
@@ -109,6 +111,7 @@ if __name__ == '__main__':
     user_holding_cost = 1.0
     user_stockout_cost = 10.0
 
+    user_capacity = 20
     user_reorder_point = 8
     user_reorder_point_poisson_mean = 8.0
 
@@ -132,7 +135,8 @@ if __name__ == '__main__':
     )
 
     si_sp = SimpleInventoryStochasticPolicy(
-        reorder_point_poisson_mean=user_reorder_point_poisson_mean)
+        reorder_point_poisson_mean=user_reorder_point_poisson_mean,
+        capacity=user_capacity)
 
     oos_frac_sp = si_mdp_nocap.fraction_of_days_oos(policy=si_sp,
                                                     time_steps=user_time_steps,
