@@ -101,6 +101,30 @@ if __name__ == '__main__':
 
     user_gamma = 0.9
 
+    si_mrp = SimpleInventoryMRP(
+        capacity=user_capacity,
+        poisson_lambda=user_poisson_lambda,
+        holding_cost=user_holding_cost,
+        stockout_cost=user_stockout_cost)
+
+    def sampler() -> NonTerminal[InventoryState]:
+        on_hand = min(np.random.poisson(1), user_capacity)
+        on_order = min(np.random.poisson(1), user_capacity)
+        nt_sts = NonTerminal(state=InventoryState(on_hand=on_hand, on_order=on_order))
+        print(f'begin state:', nt_sts)
+        return nt_sts
+
+    ss: SampledDistribution[NonTerminal[InventoryState]] = SampledDistribution(sampler=sampler)
+
+    sim_iter = si_mrp.simulate_reward(start_state_distribution=ss)
+
+    i = 0
+    for step in sim_iter:
+        print(f'step {i}: {step.state.state} -> {step.next_state.state}, reward={step.reward}')
+        i += 1
+        if i > 100:
+            break
+
     si_mrp = SimpleInventoryMRPFinite(
         capacity=user_capacity,
         poisson_lambda=user_poisson_lambda,
