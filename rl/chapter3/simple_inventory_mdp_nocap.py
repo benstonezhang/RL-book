@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Tuple, Iterator
+from typing import Tuple, Iterator, Optional
 import itertools
 import numpy as np
 from scipy.stats import poisson
@@ -89,16 +89,17 @@ class SimpleInventoryDeterministicPolicy(
 
 
 class SimpleInventoryStochasticPolicy(Policy[InventoryState, int]):
-    def __init__(self, reorder_point_poisson_mean: float, capacity: int):
+    def __init__(self, reorder_point_poisson_mean: float, capacity: Optional[int] = None):
         self.reorder_point_poisson_mean: float = reorder_point_poisson_mean
-        self.capacity: int = capacity
+        self.capacity: Optional[int] = capacity
 
     def act(self, state: NonTerminal[InventoryState]) -> \
             SampledDistribution[int]:
         def action_func(state=state) -> int:
-            reorder_point_sample: int = min(
-                np.random.poisson(self.reorder_point_poisson_mean),
-                self.capacity)
+            reorder_point_sample: int = \
+                np.random.poisson(self.reorder_point_poisson_mean)
+            if self.capacity is not None:
+                reorder_point_sample = min(reorder_point_sample, self.capacity)
             return max(
                 reorder_point_sample - state.state.inventory_position(),
                 0
